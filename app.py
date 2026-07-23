@@ -12,14 +12,22 @@ os.makedirs(PAPERS_FOLDER, exist_ok=True)
 
 ADMIN_PASSWORD = "dca2026"  # change this before you submit/demo
 
+YEARS_BY_COURSE = {
+    "B.Sc Computer Applications": [2024, 2025, 2026],
+    "B.Voc Software Development": [2025, 2026],
+}
+
+
 def get_db_connection():
     connection = sqlite3.connect('papers.db')
     connection.row_factory = sqlite3.Row
     return connection
 
+
 @app.route('/')
 def index():
     course_id = request.args.get('course', 1, type=int)
+    search = request.args.get('search', '').strip()
 
     connection = get_db_connection()
     courses = connection.execute('SELECT * FROM courses').fetchall()
@@ -41,6 +49,22 @@ def index():
 
     connection.close()
 
+    if search:
+        if search.isdigit():
+            year_query = int(search)
+            filtered_papers = {}
+            matching_subject_ids = set()
+            for subject_id, papers in papers_by_subject.items():
+                matches = [p for p in papers if p['year'] == year_query]
+                if matches:
+                    filtered_papers[subject_id] = matches
+                    matching_subject_ids.add(subject_id)
+            papers_by_subject = filtered_papers
+            subjects = [s for s in subjects if s['id'] in matching_subject_ids]
+        else:
+            search_lower = search.lower()
+            subjects = [s for s in subjects if search_lower in s['name'].lower()]
+
     subjects_by_semester = {}
     for subject in subjects:
         sem = subject['semester']
@@ -51,7 +75,8 @@ def index():
         courses=courses,
         selected_course=course_id,
         subjects_by_semester=subjects_by_semester,
-        papers_by_subject=papers_by_subject
+        papers_by_subject=papers_by_subject,
+        search=search
     )
 
 
@@ -70,7 +95,6 @@ def download(paper_id):
 @app.route('/admin')
 def admin():
     connection = get_db_connection()
-    # Subjects joined with their course name, so the dropdown reads clearly
     subjects = connection.execute('''
         SELECT subjects.id, subjects.name, subjects.semester, courses.name AS course_name
         FROM subjects
@@ -85,10 +109,6 @@ def admin():
 def admin_login():
     password = request.form.get('password', '')
     if password == ADMIN_PASSWORD:
-        YEARS_BY_COURSE = {
-    "B.Sc Computer Applications": [2024, 2025, 2026],
-    "B.Voc Software Development": [2025, 2026],
-}
         session['is_admin'] = True
         flash("Logged in successfully.")
     else:
@@ -104,12 +124,12 @@ def admin_logout():
 
 @app.route('/admin/upload', methods=['POST'])
 def admin_upload():
-     if not session.get('is_admin'):
+    if not session.get('is_admin'):
         return "Not authorized", 403
 
-     subject_id = request.form.get('subject_id', type=int)
-     year = request.form.get('year', type=int)
-     file = request.files.get('file')
+    subject_id = request.form.get('subject_id', type=int)
+    year = request.form.get('year', type=int)
+    file = request.files.get('file')
 
     if not subject_id or not year:
         flash("Please choose a subject and enter a year.")
@@ -157,6 +177,7 @@ def admin_upload():
 
     flash("Paper uploaded successfully.")
     return redirect(url_for('admin'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
