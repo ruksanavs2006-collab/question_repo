@@ -48,6 +48,15 @@
     <section id="repository" class="repository">
         <h2>Repository</h2>
 
+        <form method="GET" action="/" class="search-form">
+            <input type="hidden" name="course" value="{{ selected_course }}">
+            <input type="text" name="search" placeholder="Search by subject name or year..." value="{{ search }}">
+            <button type="submit" class="btn-gold">Search</button>
+            {% if search %}
+                <a href="/?course={{ selected_course }}#repository" class="clear-search">Clear</a>
+            {% endif %}
+        </form>
+
         <div class="course-tabs">
             {% for course in courses %}
                 <a href="/?course={{ course['id'] }}#repository"
@@ -80,7 +89,11 @@
                 </div>
             {% endfor %}
         {% else %}
-            <p class="empty-msg">No subjects added yet for this course.</p>
+            {% if search %}
+                <p class="empty-msg">No papers found matching "{{ search }}".</p>
+            {% else %}
+                <p class="empty-msg">No subjects added yet for this course.</p>
+            {% endif %}
         {% endif %}
     </section>
 

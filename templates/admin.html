@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Login</title>
+    <title>Admin — Dept. of Computer Applications</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -13,13 +13,46 @@
     </header>
 
     <section class="admin-section">
-        <h2>Admin Login</h2>
-        <form class="admin-form">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required>
-            <button type="submit" class="btn-gold">Login</button>
-        </form>
-        <p class="admin-note">Upload functionality will be connected in a later step.</p>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flash-messages">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        {% if session.is_admin %}
+            <h2>Upload a Question Paper</h2>
+            <form class="admin-form" action="{{ url_for('admin_upload') }}" method="POST" enctype="multipart/form-data">
+                <label for="subject_id">Subject</label>
+                <select id="subject_id" name="subject_id" required>
+                    <option value="" disabled selected>Choose a subject</option>
+                    {% for subject in subjects %}
+                        <option value="{{ subject.id }}">
+                            {{ subject.course_name }} — Sem {{ subject.semester }} — {{ subject.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <label for="year">Year</label>
+                <input type="number" id="year" name="year" min="2000" max="2100" required>
+
+                <label for="file">PDF File</label>
+                <input type="file" id="file" name="file" accept="application/pdf" required>
+
+                <button type="submit" class="btn-gold">Upload Paper</button>
+            </form>
+            <p class="admin-note"><a href="{{ url_for('admin_logout') }}">Log out</a></p>
+        {% else %}
+            <h2>Admin Login</h2>
+            <form class="admin-form" action="{{ url_for('admin_login') }}" method="POST">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+                <button type="submit" class="btn-gold">Login</button>
+            </form>
+        {% endif %}
     </section>
 </body>
 </html>
